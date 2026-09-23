@@ -46,7 +46,28 @@ function editorPage(){
  const stepNames=['Черновик','Уточнение','Карточка и рейтинг'];
  let body='';
  if(editorStep===1){body=`<div class="panel form-panel"><div class="section-number">01 / ОПИШИТЕ СИТУАЦИЮ</div><h2>С какой задачей вам нужна помощь?</h2><p class="muted">Начните с нескольких предложений. Уточняющие вопросы помогут собрать остальные детали.</p><form id="draft-form"><label>Направление<select name="topic">${state.topics.map(t=>`<option ${editor.topic===t?'selected':''}>${e(t)}</option>`).join('')}</select></label><label>Черновик задачи<textarea name="draft" class="large-textarea" required minlength="10" maxlength="4000" placeholder="Например: у нашей кофейни остаётся много выпечки. Хотим лучше планировать закупки.">${e(editor.draft)}</textarea></label><div class="actions"><button class="primary" type="submit">Уточнить задачу ✦</button><button class="text-button" type="button" data-action="sample">Подставить демо-пример</button></div></form><div class="ai-note"><span>✦</span><p><b>Локальный AI-режим · заглушка</b>Вопросы подбираются по незаполненным полям и направлению. Модель не подключена; новые факты не добавляются.</p></div></div>`;}
- if(editorStep===2){body=`<form id="questions-form" class="panel form-panel"><div class="section-number">02 / УТОЧНЯЮЩИЕ ВОПРОСЫ</div><h2>Добавим важные детали</h2><p class="muted">Можно оставить поле пустым. Недостающие сведения останутся видны в рейтинге.</p>${editor.questions.map((q,i)=>`<label><span class="question-num">${String(i+1).padStart(2,'0')}</span>${e(q.question)}<textarea name="${q.field}" maxlength="4000" placeholder="Ваш ответ…">${e(editor.fields[q.field])}</textarea></label>`).join('')}<div class="actions"><button class="primary" type="submit">Собрать карточку →</button><button class="text-button" type="button" data-action="sample-answers">Заполнить демо-ответами</button></div><details><summary>Промпт и формат AI</summary><pre>${e(state.aiPrompt)}</pre><p class="muted">Ответ валидируется на сервере: минимум 3 вопроса, допустимые поля, отсутствие новых фактов. При ошибке ответы пользователя сохраняются в форме.</p></details></form>`;}
+ if(editorStep===2){body=`<form id="questions-form" class="panel form-panel"><div class="section-number">02 / УТОЧНЯЮЩИЕ ВОПРОСЫ</div><h2>Добавим важные детали</h2><p class="muted">Можно оставить поле пустым. Недостающие сведения останутся видны в рейтинге.</p>${editor.questions.map((q,i)=>{
+  const rubricItem = state.rubric.find(([field]) => field === q.field);
+  const points = rubricItem ? rubricItem[1] : 0;
+
+  return `<label class="question-card">
+    <span class="question-head">
+      <span>
+        <b class="question-num">${String(i+1).padStart(2,'0')}</b>
+        ${e(state.labels[q.field])}
+      </span>
+      <strong>+${points} баллов</strong>
+    </span>
+
+    <span class="question-text">${e(q.question)}</span>
+
+    <textarea
+      name="${q.field}"
+      maxlength="4000"
+      placeholder="Ваш ответ…"
+    >${e(editor.fields[q.field])}</textarea>
+  </label>`;
+}).join('')}<div class="actions"><button class="primary" type="submit">Собрать карточку →</button><button class="text-button" type="button" data-action="sample-answers">Заполнить демо-ответами</button></div><details><summary>Промпт и формат AI</summary><pre>${e(state.aiPrompt)}</pre><p class="muted">Ответ валидируется на сервере: минимум 3 вопроса, допустимые поля, отсутствие новых фактов. При ошибке ответы пользователя сохраняются в форме.</p></details></form>`;}
  if(editorStep===3){body=`<div class="detail-layout"><form id="card-form" class="panel form-panel"><div class="section-number">03 / ПРОВЕРЬТЕ И ПОДТВЕРДИТЕ</div><h2>Ваша задача обрела форму</h2><p class="muted">Проверьте каждое поле. Пропуски допустимы даже при публикации.</p><label>Направление<select name="topic">${state.topics.map(t=>`<option ${editor.topic===t?'selected':''}>${e(t)}</option>`).join('')}</select></label>${Object.entries(state.labels).map(([f,label])=>`<label>${e(label)}${f==='title'?' *':''}${f==='title'?`<input name="${f}" required minlength="3" maxlength="160" value="${e(editor.fields[f])}" placeholder="Короткое и понятное название">`:`<textarea name="${f}" maxlength="4000" placeholder="Пока не указано">${e(editor.fields[f])}</textarea>`}</label>`).join('')}<label class="confirm-label"><input id="confirmation" type="checkbox" ${editor.confirmNow?'checked':''}> <span>Я проверил(а) и подтверждаю сведения карточки. При публикации они будут доступны всем командам.</span></label><div class="actions"><button class="primary" type="submit" name="intent" value="publish">${editor.published?'Подтвердить изменения':'Подтвердить и опубликовать'} ↗</button>${!editor.published?'<button class="secondary" type="submit" name="intent" value="save">Сохранить черновик</button>':''}</div></form><div id="editor-rating">${ratingPanel(previewRating(editor.fields),true)}</div></div>`;}
  shell(`<button class="back" data-action="nav" data-view="catalog">← К каталогу</button>${pageHead('КОНСТРУКТОР ЗАДАЧИ','От мысли к понятной задаче.','Сначала смысл. Затем детали. И команда, готовая взяться за дело.')}<div class="steps">${stepNames.map((name,i)=>`<div class="step ${editorStep===i+1?'current':editorStep>i+1?'done':''}"><span>${editorStep>i+1?'✓':i+1}</span>${name}</div>`).join('')}</div>${body}`);
 }
